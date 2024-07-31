@@ -1,24 +1,28 @@
-import { Statistic, Card, Layout, List, Typography, Tag } from "antd";
+import { Statistic, Card, Layout, List, Typography, Tag, Button } from "antd";
 import { ArrowDownOutlined, ArrowUpOutlined } from "@ant-design/icons";
-import { capitalize, formatPrice } from "../../utils";
-import { useContext } from "react";
-import CryptoContext from "../../context/crypto-context";
-
-const siderStyle = {
-  padding: "1rem",
-};
+import { formatPrice } from "../../utils";
+import { useCrypto } from "../../context/crypto-context";
 
 export default function AppSider() {
-  const { assets } = useContext(CryptoContext);
+  const { assets, removeAsset } = useCrypto();
 
   return (
-    <Layout.Sider width="25%" style={siderStyle}>
+    <Layout.Sider width="25%" style={{ padding: "1rem" }}>
+      {assets.length === 0 && (
+        <Typography.Title level={3} style={{ textAlign: "center", color: "#fff" }}>
+          Add your first asset by clicking on Add Asset button
+        </Typography.Title>
+      )}
+
       {/* чтобы не делать map => {return...} */}
       {/* можно написать map => (...) как бы перевод на новую строку получается */}
       {assets.map((asset) => (
         <Card key={asset.id} style={{ marginBottom: "1rem" }}>
+          <Button onClick={() => removeAsset(asset)} style={{ position: "absolute", right: 24 }} shape="circle">
+            X
+          </Button>
           <Statistic
-            title={<Typography.Title level={5}>{capitalize(asset.id)}</Typography.Title>}
+            title={<Typography.Title level={5}>{asset.name}</Typography.Title>}
             value={formatPrice(asset.totalAmount)}
             valueStyle={{
               color: asset.grow ? "#3f8600" : "#cf1322",

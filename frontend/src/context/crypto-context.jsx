@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useContext } from "react";
-import { fakeFetchAssets, fakeFetchCrypto, fetchCrypto } from "../api";
 import { percentDifference } from "../utils";
+import { cryptoAssets } from "../data";
+import { Result, Button } from "antd";
 
 // конекст как хранилище данных, которые могут использовать все компоненты,
 // которые будут внутри компонента CryptoContextProvider см. App.jsx
@@ -10,53 +11,131 @@ const CryptoContext = createContext({
   loading: false,
 });
 
-function mapAssets(assets, result) {
-  return assets.map((asset) => {
-    const coin = result.find((c) => c.id === asset.id);
-    return {
-      grow: asset.price <= coin.price,
-      growPercent: percentDifference(asset.price, coin.price),
-      totalAmount: asset.amount * coin.price,
-      totalProfit: asset.amount * (coin.price - asset.price),
-      name: coin.name,
-      ...asset,
-    };
-  });
-}
-
-export function CryptoContextProvider({ children }) {
+export default function CryptoContextProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [crypto, setCrypto] = useState([]);
   const [assets, setAssets] = useState([]);
+  const [fetchFailed, setFetchFailed] = useState(false);
 
-  // обычно базово подгружаем данные через useEffect
+  function fetchAssets() {
+    // имитируем получение данных по сети
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(cryptoAssets);
+      }, 30);
+    });
+  }
+
+  async function fetchCrypto() {
+    const options = {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        accept: "application/json",
+        Pragma: "no-cache",
+        "Cache-Control": "no-cache",
+        "X-API-KEY": "TqkD+xrJENHXDOLtplkvqDFjyopIdtpSgL3HYxuweVw=",
+      },
+    };
+
+    try {
+      const response = await fetch("https://openapiv1.coinstats.app/coins?limit=20", options);
+      const server_json = await response.json();
+
+      if (server_json.statusCode >= 400) {
+        throw new Error(server_json.message);
+      }
+      return server_json;
+    } catch (err) {
+      console.log(err);
+      setFetchFailed(true);
+    }
+  }
+
+  function mapAssets(assets, result) {
+    return assets
+      .map((asset) => {
+        const coin = result.find((c) => c.id === asset.id);
+        return {
+          ...asset,
+          grow: asset.avgPrice <= coin.price,
+          growPercent: percentDifference(asset.avgPrice, coin.price),
+          totalAmount: asset.amount * coin.price,
+          totalProfit: asset.amount * (coin.price - asset.avgPrice),
+          name: coin.name,
+          currentPrice: coin.price,
+        };
+      })
+      .sort((a, b) => b.totalAmount - a.totalAmount);
+  }
+
+  function addAsset(newAsset) {
+    const duplicate = assets.find((asset) => asset.id === newAsset.id);
+
+    if (duplicate) {
+      const newAmount = duplicate.amount + newAsset.amount;
+      duplicate.avgPrice = (duplicate.amount * duplicate.avgPrice + newAsset.amount * newAsset.avgPrice) / newAmount;
+      duplicate.amount = newAmount;
+
+      setAssets((prev) => {
+        const withoutDuplicate = prev.filter((asset) => asset.id !== duplicate.id);
+        return mapAssets([...withoutDuplicate, duplicate], crypto);
+      });
+    } else {
+      setAssets((prev) => mapAssets([...prev, newAsset], crypto));
+    }
+  }
+
+  function removeAsset(removingAsset) {
+    setAssets((prev) => prev.filter((asset) => asset.id !== removingAsset.id));
+  }
+
+  // обычно подгружаем данные с помощью useEffect
   useEffect(() => {
     async function preload() {
       setLoading(true);
-      const { result } = await fakeFetchCrypto();
-      const assets = await fakeFetchAssets();
-
-      setAssets(mapAssets(assets, result));
+      const { result } = await fetchCrypto();
+      const assets = await fetchAssets();
 
       setCrypto(result);
+      setAssets(mapAssets(assets, result));
       setLoading(false);
+
+      // обновлять данные о ценах каждые 30 секунд
+      setInterval(async () => {
+        const { result } = await fetchCrypto();
+        setCrypto(result);
+        setAssets((prev) => mapAssets(prev, result));
+      }, 1000 * 30);
     }
+
     preload();
   }, []);
 
-  function addAsset(newAsset) {
-    setAssets((prev) => mapAssets([...prev, newAsset], crypto));
+  if (fetchFailed) {
+    return (
+      <Result
+        status="warning"
+        title="Crypto data couldn't be retrieved from the server (https://openapiv1.coinstats.app). Please, try again later"
+        extra={
+          <Button onClick={() => window.location.reload()} type="primary">
+            Refresh the Page
+          </Button>
+        }
+      />
+    );
   }
 
-  return <CryptoContext.Provider value={{ loading, crypto, assets, addAsset }}>{children}</CryptoContext.Provider>;
+  return (
+    <CryptoContext.Provider value={{ loading, crypto, assets, addAsset, removeAsset }}>
+      {children}
+    </CryptoContext.Provider>
+  );
 }
-
-export default CryptoContext;
 
 // наш собственный хук
 // можно использовать его, чтобы писать только один импорт - useCrypto
 // вместо двух - useContext и CryptoContext
-// с другой стороны тогда дефолтный экспорт CryptoContext становится бесполезным же?..
 export function useCrypto() {
   return useContext(CryptoContext);
 }

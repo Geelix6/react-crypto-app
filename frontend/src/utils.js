@@ -2,10 +2,6 @@ export function percentDifference(a, b) {
   return +((100 * (b - a)) / a).toFixed(2);
 }
 
-export function capitalize(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
 export function formatPrice(price) {
   if (price == 0) return 0;
 

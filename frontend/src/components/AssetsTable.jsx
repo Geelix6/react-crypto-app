@@ -1,23 +1,27 @@
 import { Table } from "antd";
 import { useCrypto } from "../context/crypto-context";
+import { formatPrice } from "../utils";
 
 const columns = [
   {
     title: "Name",
     dataIndex: "name",
-    sorter: (a, b) => a.name.length - b.name.length,
-    sortDirections: ["descend"],
   },
   {
-    title: "Price, $",
-    dataIndex: "price",
-    defaultSortOrder: "descend",
-    sorter: (a, b) => a.price - b.price,
+    title: "Average purchase price, $",
+    dataIndex: "avgPurchasePrice",
+    sorter: (a, b) => {
+      return a.avgPurchasePrice - b.avgPurchasePrice;
+    },
+  },
+  {
+    title: "Current price, $",
+    dataIndex: "currentPrice",
+    sorter: (a, b) => a.currentPrice - b.currentPrice,
   },
   {
     title: "Amount",
     dataIndex: "amount",
-    defaultSortOrder: "descend",
     sorter: (a, b) => a.amount - b.amount,
   },
 ];
@@ -27,7 +31,8 @@ export default function AssetsTable() {
   const data = assets.map((asset) => ({
     key: asset.id,
     name: asset.name,
-    price: asset.price,
+    avgPurchasePrice: formatPrice(asset.avgPrice),
+    currentPrice: formatPrice(asset.currentPrice),
     amount: asset.amount,
   }));
 

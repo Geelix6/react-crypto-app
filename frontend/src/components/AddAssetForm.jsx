@@ -26,7 +26,7 @@ export default function AddAssetForm({ onClose }) {
       <Result
         status="success"
         title="New Asset Added"
-        subTitle={`Added ${assetRef.current.amount} of ${coin.name} for the price of ${assetRef.current.price}$`}
+        subTitle={`Added ${assetRef.current.amount} of ${coin.name} for the price of ${assetRef.current.avgPrice}$`}
         extra={[
           <Button type="primary" key="console" onClick={onClose}>
             Close
@@ -60,12 +60,10 @@ export default function AddAssetForm({ onClose }) {
   }
 
   function onFinish(values) {
-    console.log(values);
     const newAsset = {
       id: coin.id,
       amount: values.amount,
-      price: values.price,
-      date: values.date?.$d ?? new Date(),
+      avgPrice: values.price,
     };
     assetRef.current = newAsset;
     setSubmitted(true);
@@ -134,10 +132,6 @@ export default function AddAssetForm({ onClose }) {
         ]}
       >
         <InputNumber style={{ width: "100%" }} onChange={handlePriceChange} />
-      </Form.Item>
-
-      <Form.Item label="Date & Time" name="date">
-        <DatePicker showTime />
       </Form.Item>
 
       <Form.Item label="Total" name="total">

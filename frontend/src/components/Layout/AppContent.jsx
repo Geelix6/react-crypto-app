@@ -18,7 +18,7 @@ export default function AppContent() {
   return (
     <Layout.Content style={contentStyle}>
       <Typography.Title level={3} style={{ textAlign: "left", color: "#fff" }}>
-        Portfolio {formatPrice(assets.reduce((acc, asset) => acc + asset.totalAmount, 0))}$
+        Portfolio: {formatPrice(assets.reduce((acc, asset) => acc + asset.totalAmount, 0))}$
       </Typography.Title>
       <PortfolioChart />
       <AssetsTable />

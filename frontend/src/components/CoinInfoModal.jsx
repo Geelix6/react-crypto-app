@@ -1,8 +1,12 @@
 import { Tag, Typography, Divider } from "antd";
 import { formatMarketCap, formatPrice } from "../utils";
 import CoinInfo from "./CoinInfo";
+import { useCrypto } from "../context/crypto-context";
 
 export default function CoinInfoModal({ coin }) {
+  const { crypto } = useCrypto();
+  coin = crypto.find((c) => c.id === coin.id);
+
   return (
     <>
       {/* если передавать пропс без значения, то его значением будет true */}
