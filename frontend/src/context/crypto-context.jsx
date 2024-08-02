@@ -26,7 +26,7 @@ export default function CryptoContextProvider({ children }) {
     });
   }
 
-  async function fetchCrypto() {
+  async function fetchCrypto(isInitialLoading = false) {
     const options = {
       method: "GET",
       cache: "no-store",
@@ -47,8 +47,12 @@ export default function CryptoContextProvider({ children }) {
       }
       return server_json;
     } catch (err) {
-      console.log(err);
-      setFetchFailed(true);
+      if (isInitialLoading) {
+        console.log(err);
+        setFetchFailed(true);
+      } else {
+        throw err;
+      }
     }
   }
 
@@ -94,22 +98,28 @@ export default function CryptoContextProvider({ children }) {
   useEffect(() => {
     async function preload() {
       setLoading(true);
-      const { result } = await fetchCrypto();
+      const { result } = await fetchCrypto(true);
       const assets = await fetchAssets();
 
       setCrypto(result);
       setAssets(mapAssets(assets, result));
       setLoading(false);
-
-      // обновлять данные о ценах каждые 30 секунд
-      setInterval(async () => {
-        const { result } = await fetchCrypto();
-        setCrypto(result);
-        setAssets((prev) => mapAssets(prev, result));
-      }, 1000 * 30);
     }
 
     preload();
+
+    // обновлять данные о ценах каждые 30 секунд
+    const interval = setInterval(async () => {
+      try {
+        const { result } = await fetchCrypto();
+        setCrypto(result);
+        setAssets((prev) => mapAssets(prev, result));
+      } catch (err) {
+        console.log(err);
+      }
+    }, 1000 * 30);
+
+    return () => clearInterval(interval);
   }, []);
 
   if (fetchFailed) {
