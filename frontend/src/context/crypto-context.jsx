@@ -76,22 +76,31 @@ export default function CryptoContextProvider({ children }) {
   function addAsset(newAsset) {
     const duplicate = assets.find((asset) => asset.id === newAsset.id);
 
-    if (duplicate) {
-      const newAmount = duplicate.amount + newAsset.amount;
-      duplicate.avgPrice = (duplicate.amount * duplicate.avgPrice + newAsset.amount * newAsset.avgPrice) / newAmount;
-      duplicate.amount = newAmount;
+    setAssets((prev) => {
+      let newState;
 
-      setAssets((prev) => {
+      if (duplicate) {
+        const newAmount = duplicate.amount + newAsset.amount;
+        duplicate.avgPrice = (duplicate.amount * duplicate.avgPrice + newAsset.amount * newAsset.avgPrice) / newAmount;
+        duplicate.amount = newAmount;
+
         const withoutDuplicate = prev.filter((asset) => asset.id !== duplicate.id);
-        return mapAssets([...withoutDuplicate, duplicate], crypto);
-      });
-    } else {
-      setAssets((prev) => mapAssets([...prev, newAsset], crypto));
-    }
+        newState = mapAssets([...withoutDuplicate, duplicate], crypto);
+      } else {
+        newState = mapAssets([...prev, newAsset], crypto);
+      }
+
+      localStorage.setItem("crypto_assets", JSON.stringify(newState));
+      return newState;
+    });
   }
 
   function removeAsset(removingAsset) {
-    setAssets((prev) => prev.filter((asset) => asset.id !== removingAsset.id));
+    setAssets((prev) => {
+      const newState = prev.filter((asset) => asset.id !== removingAsset.id);
+      localStorage.setItem("crypto_assets", JSON.stringify(newState));
+      return newState;
+    });
   }
 
   // обычно подгружаем данные с помощью useEffect
@@ -100,6 +109,7 @@ export default function CryptoContextProvider({ children }) {
       setLoading(true);
       const { result } = await fetchCrypto(true);
       const assets = await fetchAssets();
+      localStorage.setItem("crypto_assets", JSON.stringify(assets));
 
       setCrypto(result);
       setAssets(mapAssets(assets, result));

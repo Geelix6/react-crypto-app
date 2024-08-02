@@ -1,4 +1,4 @@
-export const cryptoAssets = [
+export const cryptoAssets = JSON.parse(localStorage.getItem("crypto_assets")) ?? [
   {
     id: "bitcoin",
     amount: 0.02,
